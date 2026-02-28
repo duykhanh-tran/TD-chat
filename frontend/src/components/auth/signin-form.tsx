@@ -7,7 +7,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Label } from "../ui/label";
 import { useAuthStore } from "@/stores/useAuthStore";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 
 const signInSchema = z.object({
   username: z.string().min(3, "Tên đăng nhập phải có ít nhất 3 ký tự"),
@@ -115,12 +115,12 @@ export function SigninForm({ className, ...props }: React.ComponentProps<"div">)
 
               <div className="text-center text-sm">
                 Chưa có tài khoản?{" "}
-                <a
-                  href="/signup"
+                <Link
+                  to="/signup"
                   className="underline underline-offset-4"
                 >
                   Đăng ký
-                </a>
+                </Link>
               </div>
             </div>
           </form>
