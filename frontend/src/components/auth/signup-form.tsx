@@ -174,7 +174,7 @@ export function SignupForm({ className, ...props }: React.ComponentProps<"div">)
               <div className="text-center text-sm">
                 Đã có tài khoản?{" "}
                 <a
-                  href="/signin-form"
+                  href="/signin"
                   className="underline underline-offset-4"
                 >
                   Đăng nhập
