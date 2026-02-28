@@ -1,4 +1,4 @@
-import { BrowserRouter, Route, Routes } from "react-router";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router";
 import SignInPage from "./pages/SignInPage";
 import ChatAppPage from "./pages/ChatAppPage";
 import HomePage from './pages/HomePage';
@@ -35,18 +35,20 @@ function App() {
       <Toaster richColors />
       <BrowserRouter>
         <Routes>
+          {/* Nếu đã có token thì vào thẳng /chat, nếu chưa thì hiện HomePage */}
           <Route
             path="/"
-            element={<HomePage />}
+            element={accessToken ? <Navigate to="/chat" /> : <HomePage />}
           />
+          
           {/* public routes */}
           <Route
             path="/signin"
-            element={<SignInPage />}
+            element={accessToken ? <Navigate to="/chat" /> : <SignInPage />}
           />
           <Route
             path="/signup"
-            element={<SignUpPage />}
+            element={accessToken ? <Navigate to="/chat" /> : <SignUpPage />}
           />
 
           {/* protectect routes */}
@@ -56,6 +58,7 @@ function App() {
               element={<ChatAppPage />}
             />
           </Route>
+          
           <Route path="/features" element={<FeaturesPage />} />
           <Route path="/guide" element={<GuidePage />} />
           <Route path="/contact" element={<ContactPage />} />
