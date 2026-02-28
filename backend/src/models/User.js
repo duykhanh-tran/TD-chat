@@ -1,49 +1,49 @@
 import mongoose from "mongoose";
 
-const userSchema = new mongoose.Schema({
-    username : {
-        type : String , 
-        required : true ,
-        unique : true , 
-        trim : true , 
-        lowercase : true ,
+const userSchema = new mongoose.Schema(
+  {
+    username: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+      lowercase: true,
     },
-    hashedPassword : {
-        type : String ,
-        required : true , 
-    }, 
-    email : {
-        type : String , 
-        required : true ,
-        unique : true , 
-        trim : true , 
-        lowercase : true ,
+    hashedPassword: {
+      type: String,
+      required: true,
     },
-    displayName : { // Ten hien thi cua nguoi dung 
-        type : String , 
-        required : true ,
-        trim : true , 
+    email: {
+      type: String,
+      required: true,
+      unique: true,
+      lowercase: true,
+      trim: true,
     },
-    avatarUrl : {
-        type : String , 
+    displayName: {
+      type: String,
+      required: true,
+      trim: true,
     },
-    avatarId : {
-        type : String , // Cloudinary public_id de xoa hinh 
+    avatarUrl: {
+      type: String, // link CDN để hiển thị hình
     },
-    bio : {
-        type : String , 
-        maxlength : 500 ,
+    avatarId: {
+      type: String, // Cloudinary public_id để xoá hình
     },
-    phone : {
-        type : String , 
-        sparse : true , // Cho pheo gia tri null nhung khong duoc trung 
+    bio: {
+      type: String,
+      maxlength: 500, // tuỳ
     },
-},
-{
-    timestamps : true ,
-}
+    phone: {
+      type: String,
+      sparse: true, // cho phép null, nhưng không được trùng
+    },
+  },
+  {
+    timestamps: true,
+  }
 );
 
-const User = mongoose.model("User" , userSchema);
-
-export default User ;
+const User = mongoose.model("User", userSchema);
+export default User;
