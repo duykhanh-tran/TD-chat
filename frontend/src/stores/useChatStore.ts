@@ -11,7 +11,7 @@ export const useChatStore = create<ChatState>()(
       conversations: [],
       messages: {},
       activeConversationId: null,
-      convoLoading: false, // convo loading
+      convoLoading: false,
       messageLoading: false,
       loading: false,
 
@@ -23,6 +23,7 @@ export const useChatStore = create<ChatState>()(
           activeConversationId: null,
           convoLoading: false,
           messageLoading: false,
+          loading: false,
         });
       },
       fetchConversations: async () => {
@@ -30,9 +31,17 @@ export const useChatStore = create<ChatState>()(
           set({ convoLoading: true });
           const { conversations } = await chatService.fetchConversations();
 
-          set({ conversations, convoLoading: false });
+          set((state) => ({
+            conversations,
+            convoLoading: false,
+            activeConversationId: conversations.some(
+              (conversation) => conversation._id === state.activeConversationId,
+            )
+              ? state.activeConversationId
+              : null,
+          }));
         } catch (error) {
-          console.error("Lỗi xảy ra khi fetchConversations:", error);
+          console.error("Loi xay ra khi fetchConversations:", error);
           set({ convoLoading: false });
         }
       },
@@ -55,12 +64,12 @@ export const useChatStore = create<ChatState>()(
         try {
           const { messages: fetched, cursor } = await chatService.fetchMessages(
             convoId,
-            nextCursor
+            nextCursor,
           );
 
-          const processed = fetched.map((m) => ({
-            ...m,
-            isOwn: m.senderId === user?._id,
+          const processed = fetched.map((message) => ({
+            ...message,
+            isOwn: message.senderId === user?._id,
           }));
 
           set((state) => {
@@ -79,7 +88,7 @@ export const useChatStore = create<ChatState>()(
             };
           });
         } catch (error) {
-          console.error("Lỗi xảy ra khi fetchMessages:", error);
+          console.error("Loi xay ra khi fetchMessages:", error);
         } finally {
           set({ messageLoading: false });
         }
@@ -91,27 +100,32 @@ export const useChatStore = create<ChatState>()(
             recipientId,
             content,
             imgUrl,
-            activeConversationId || undefined
+            activeConversationId || undefined,
           );
+
           set((state) => ({
-            conversations: state.conversations.map((c) =>
-              c._id === activeConversationId ? { ...c, seenBy: [] } : c
+            conversations: state.conversations.map((conversation) =>
+              conversation._id === activeConversationId
+                ? { ...conversation, seenBy: [] }
+                : conversation,
             ),
           }));
         } catch (error) {
-          console.error("Lỗi xảy ra khi gửi direct message", error);
+          console.error("Loi xay ra khi gui direct message", error);
         }
       },
       sendGroupMessage: async (conversationId, content, imgUrl) => {
         try {
           await chatService.sendGroupMessage(conversationId, content, imgUrl);
           set((state) => ({
-            conversations: state.conversations.map((c) =>
-              c._id === get().activeConversationId ? { ...c, seenBy: [] } : c
+            conversations: state.conversations.map((conversation) =>
+              conversation._id === get().activeConversationId
+                ? { ...conversation, seenBy: [] }
+                : conversation,
             ),
           }));
         } catch (error) {
-          console.error("Lỗi xảy ra gửi group message", error);
+          console.error("Loi xay ra khi gui group message", error);
         }
       },
       addMessage: async (message) => {
@@ -122,7 +136,6 @@ export const useChatStore = create<ChatState>()(
           message.isOwn = message.senderId === user?._id;
 
           const convoId = message.conversationId;
-
           let prevItems = get().messages[convoId]?.items ?? [];
 
           if (prevItems.length === 0) {
@@ -131,31 +144,71 @@ export const useChatStore = create<ChatState>()(
           }
 
           set((state) => {
-            if (prevItems.some((m) => m._id === message._id)) {
+            if (prevItems.some((item) => item._id === message._id)) {
               return state;
             }
+
+            const currentMessageState = state.messages[convoId];
 
             return {
               messages: {
                 ...state.messages,
                 [convoId]: {
                   items: [...prevItems, message],
-                  hasMore: state.messages[convoId].hasMore,
-                  nextCursor: state.messages[convoId].nextCursor ?? undefined,
+                  hasMore: currentMessageState?.hasMore ?? true,
+                  nextCursor: currentMessageState?.nextCursor ?? undefined,
                 },
               },
             };
           });
         } catch (error) {
-          console.error("Lỗi xảy khi ra add message:", error);
+          console.error("Loi xay ra khi add message:", error);
         }
       },
       updateConversation: (conversation) => {
-        set((state) => ({
-          conversations: state.conversations.map((c) =>
-            c._id === conversation._id ? { ...c, ...conversation } : c
-          ),
-        }));
+        set((state) => {
+          const exists = state.conversations.some((c) => c._id === conversation._id);
+          if (!exists) {
+            return state;
+          }
+          const updatedConversations = state.conversations.map((current) =>
+            current._id === conversation._id ? { ...current, ...conversation } : current,
+          );
+
+          updatedConversations.sort((a, b) => {
+            const aTime = new Date(a.lastMessageAt ?? a.updatedAt).getTime();
+            const bTime = new Date(b.lastMessageAt ?? b.updatedAt).getTime();
+            return bTime - aTime;
+          });
+
+          return { conversations: updatedConversations };
+        });
+      },
+      removeConversation: (conversationId) => {
+        set((state) => {
+          const nextMessages = { ...state.messages };
+          delete nextMessages[conversationId];
+
+          return {
+            conversations: state.conversations.filter(
+              (conversation) => conversation._id !== conversationId,
+            ),
+            messages: nextMessages,
+            activeConversationId:
+              state.activeConversationId === conversationId
+                ? null
+                : state.activeConversationId,
+          };
+        });
+      },
+      deleteConversation: async (conversationId) => {
+        try {
+          await chatService.deleteConversation(conversationId);
+          get().removeConversation(conversationId);
+        } catch (error) {
+          console.error("Loi xay ra khi xoa conversation", error);
+          throw error;
+        }
       },
       markAsSeen: async () => {
         try {
@@ -166,7 +219,9 @@ export const useChatStore = create<ChatState>()(
             return;
           }
 
-          const convo = conversations.find((c) => c._id === activeConversationId);
+          const convo = conversations.find(
+            (conversation) => conversation._id === activeConversationId,
+          );
 
           if (!convo) {
             return;
@@ -179,26 +234,26 @@ export const useChatStore = create<ChatState>()(
           await chatService.markAsSeen(activeConversationId);
 
           set((state) => ({
-            conversations: state.conversations.map((c) =>
-              c._id === activeConversationId && c.lastMessage
+            conversations: state.conversations.map((conversation) =>
+              conversation._id === activeConversationId && conversation.lastMessage
                 ? {
-                    ...c,
+                    ...conversation,
                     unreadCounts: {
-                      ...c.unreadCounts,
+                      ...conversation.unreadCounts,
                       [user._id]: 0,
                     },
                   }
-                : c
+                : conversation,
             ),
           }));
         } catch (error) {
-          console.error("Lỗi xảy ra khi gọi markAsSeen trong store", error);
+          console.error("Loi xay ra khi goi markAsSeen trong store", error);
         }
       },
       addConvo: (convo) => {
         set((state) => {
           const exists = state.conversations.some(
-            (c) => c._id.toString() === convo._id.toString()
+            (conversation) => conversation._id.toString() === convo._id.toString(),
           );
 
           return {
@@ -215,7 +270,7 @@ export const useChatStore = create<ChatState>()(
           const conversation = await chatService.createConversation(
             type,
             name,
-            memberIds
+            memberIds,
           );
 
           get().addConvo(conversation);
@@ -224,7 +279,7 @@ export const useChatStore = create<ChatState>()(
             .getState()
             .socket?.emit("join-conversation", conversation._id);
         } catch (error) {
-          console.error("Lỗi xảy ra khi gọi createConversation trong store", error);
+          console.error("Loi xay ra khi goi createConversation trong store", error);
         } finally {
           set({ loading: false });
         }
@@ -233,6 +288,6 @@ export const useChatStore = create<ChatState>()(
     {
       name: "chat-storage",
       partialize: (state) => ({ conversations: state.conversations }),
-    }
-  )
+    },
+  ),
 );

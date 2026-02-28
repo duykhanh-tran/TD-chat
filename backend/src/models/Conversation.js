@@ -86,6 +86,12 @@ const conversationSchema = new mongoose.Schema(
       of: Number,
       default: {},
     },
+    deletedBy: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
   },
   {
     timestamps: true,

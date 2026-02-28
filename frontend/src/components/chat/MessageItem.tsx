@@ -20,6 +20,7 @@ const MessageItem = ({
   lastMessageStatus,
 }: MessageItemProps) => {
   const prev = index + 1 < messages.length ? messages[index + 1] : undefined;
+  const senderId = message.senderId?.toString() ?? "";
 
   const isShowTime =
     index === 0 ||
@@ -29,9 +30,10 @@ const MessageItem = ({
 
   const isGroupBreak = isShowTime || message.senderId !== prev?.senderId;
 
-  const participant = selectedConvo.participants.find(
-    (p: Participant) => p._id.toString() === message.senderId.toString()
-  );
+  const participant = selectedConvo.participants.find((p: Participant) => {
+    const participantId = p?._id?.toString() ?? "";
+    return participantId !== "" && participantId === senderId;
+  });
 
   return (
     <>

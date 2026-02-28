@@ -150,9 +150,18 @@ export const getAllFriends = async (req, res) => {
       return res.status(200).json({ friends: [] });
     }
 
-    const friends = friendships.map((f) =>
-      f.userA._id.toString() === userId.toString() ? f.userB : f.userA
-    );
+    const friends = friendships
+      .map((friendship) => {
+        const userA = friendship.userA;
+        const userB = friendship.userB;
+
+        if (!userA || !userB) {
+          return null;
+        }
+
+        return userA._id.toString() === userId.toString() ? userB : userA;
+      })
+      .filter(Boolean);
 
     return res.status(200).json({ friends });
   } catch (error) {

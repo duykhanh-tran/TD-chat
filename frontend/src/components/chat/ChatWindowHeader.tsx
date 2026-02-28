@@ -1,3 +1,6 @@
+import { useState } from "react";
+import { MoreHorizontal, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { useChatStore } from "@/stores/useChatStore";
 import type { Conversation } from "@/types/chat";
 import { SidebarTrigger } from "../ui/sidebar";
@@ -7,17 +10,24 @@ import UserAvatar from "./UserAvatar";
 import StatusBadge from "./StatusBadge";
 import GroupChatAvatar from "./GroupChatAvatar";
 import { useSocketStore } from "@/stores/useSocketStore";
+import { Button } from "../ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "../ui/dropdown-menu";
 
 const ChatWindowHeader = ({ chat }: { chat?: Conversation }) => {
-  const { conversations, activeConversationId } = useChatStore();
+  const [isDeleting, setIsDeleting] = useState(false);
+  const { conversations, activeConversationId, deleteConversation } = useChatStore();
   const { user } = useAuthStore();
   const { onlineUsers } = useSocketStore();
 
-  let otherUser;
+  const selectedChat =
+    chat ?? conversations.find((conversation) => conversation._id === activeConversationId);
 
-  chat = chat ?? conversations.find((c) => c._id === activeConversationId);
-
-  if (!chat) {
+  if (!selectedChat) {
     return (
       <header className="md:hidden sticky top-0 z-10 flex items-center gap-2 px-4 py-2 w-full">
         <SidebarTrigger className="-ml-1 text-foreground" />
@@ -25,12 +35,39 @@ const ChatWindowHeader = ({ chat }: { chat?: Conversation }) => {
     );
   }
 
-  if (chat.type === "direct") {
-    const otherUsers = chat.participants.filter((p) => p._id !== user?._id);
+  let otherUser = null;
+
+  if (selectedChat.type === "direct") {
+    const otherUsers = selectedChat.participants.filter((p) => p._id !== user?._id);
     otherUser = otherUsers.length > 0 ? otherUsers[0] : null;
 
-    if (!user || !otherUser) return;
+    if (!user || !otherUser) return null;
   }
+
+  const handleDeleteConversation = async () => {
+    if (!selectedChat || isDeleting) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "Bạn có chắc chắn muốn xóa cuộc trò chuyện này không?",
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setIsDeleting(true);
+      await deleteConversation(selectedChat._id);
+      toast.success("Đã xóa cuộc trò chuyện");
+    } catch (error) {
+      console.error("Lỗi khi xóa cuộc trò chuyện:", error);
+      toast.error("Xóa cuộc trò chuyện thất bại. Vui lòng thử lại.");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   return (
     <header className="sticky top-0 z-10 px-4 py-2 flex items-center bg-background">
@@ -42,16 +79,14 @@ const ChatWindowHeader = ({ chat }: { chat?: Conversation }) => {
         />
 
         <div className="p-2 w-full flex items-center gap-3">
-          {/* avatar */}
           <div className="relative">
-            {chat.type === "direct" ? (
+            {selectedChat.type === "direct" ? (
               <>
                 <UserAvatar
-                  type={"sidebar"}
+                  type="sidebar"
                   name={otherUser?.displayName || "Moji"}
                   avatarUrl={otherUser?.avatarUrl || undefined}
                 />
-                {/* todo: socket io */}
                 <StatusBadge
                   status={
                     onlineUsers.includes(otherUser?._id ?? "") ? "online" : "offline"
@@ -60,16 +95,43 @@ const ChatWindowHeader = ({ chat }: { chat?: Conversation }) => {
               </>
             ) : (
               <GroupChatAvatar
-                participants={chat.participants}
+                participants={selectedChat.participants}
                 type="sidebar"
               />
             )}
           </div>
 
-          {/* name */}
           <h2 className="font-semibold text-foreground">
-            {chat.type === "direct" ? otherUser?.displayName : chat.group?.name}
+            {selectedChat.type === "direct"
+              ? otherUser?.displayName
+              : selectedChat.group?.name}
           </h2>
+
+          <div className="ml-auto">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  disabled={isDeleting}
+                >
+                  <MoreHorizontal className="size-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  variant="destructive"
+                  onSelect={(event) => {
+                    event.preventDefault();
+                    void handleDeleteConversation();
+                  }}
+                >
+                  <Trash2 className="size-4" />
+                  Xoa cuoc tro chuyen
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
       </div>
     </header>
