@@ -1,6 +1,10 @@
 import { BrowserRouter, Route, Routes } from "react-router";
 import SignInPage from "./pages/SignInPage";
 import ChatAppPage from "./pages/ChatAppPage";
+import HomePage from './pages/HomePage';
+import FeaturesPage from "./pages/FeaturePage";
+import GuidePage from "./pages/GuidePage";
+import ContactPage from "./pages/ContactPage";
 import { Toaster } from "sonner";
 import SignUpPage from "./pages/SignUpPage";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
@@ -31,6 +35,10 @@ function App() {
       <Toaster richColors />
       <BrowserRouter>
         <Routes>
+          <Route
+            path="/"
+            element={<HomePage />}
+          />
           {/* public routes */}
           <Route
             path="/signin"
@@ -44,10 +52,13 @@ function App() {
           {/* protectect routes */}
           <Route element={<ProtectedRoute />}>
             <Route
-              path="/"
+              path="/chat"
               element={<ChatAppPage />}
             />
           </Route>
+          <Route path="/features" element={<FeaturesPage />} />
+          <Route path="/guide" element={<GuidePage />} />
+          <Route path="/contact" element={<ContactPage />} />
         </Routes>
       </BrowserRouter>
     </>
