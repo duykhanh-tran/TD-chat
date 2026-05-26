@@ -236,12 +236,7 @@ All requests must include the header `Authorization: Bearer <your_access_token>`
 
 ---
 
-## 👤 Author & Contact
 
-*   **Author:** Duy Khanh Tran
-*   **GitHub:** [@duykhanh-tran](https://github.com/duykhanh-tran)
-*   **LinkedIn:** [Your LinkedIn Profile](https://linkedin.com/in/your-profile)
-*   **Email:** [your-email@example.com](mailto:your-email@example.com)
 
 ---
 *Developed with 💜 by Duy Khanh Tran.*
